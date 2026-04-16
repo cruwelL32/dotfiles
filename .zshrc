@@ -108,7 +108,7 @@ alias 75='echo 75 | sudo tee /sys/devices/system/cpu/intel_pstate/max_perf_pct'
 # NVIDIA SHADER CACHE
 # =============================================================================
 export __GL_SHADER_DISK_CACHE=1
-export __GL_SHADER_DISK_CACHE_PATH="$HOME/.cache/nvidiashader"
+export __GL_SHADER_DISK_CACHE_PATH="$HOME/.cache/nvidia"
 export __GL_SHADER_DISK_CACHE_SKIP_CLEANUP=1
 export __GL_SHADER_DISK_CACHE_SIZE=10737418240
 
