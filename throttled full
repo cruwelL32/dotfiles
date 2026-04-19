@@ -1,0 +1,119 @@
+throttled full
+
+
+# ============================================
+# RESTORE GAMING PERFORMANCE - ALL IN ONE
+# ============================================
+
+# 1. CPU Performance Service
+sudo tee /etc/systemd/system/cpu-performance.service > /dev/null << 'EOF'
+[Unit]
+Description=CPU Performance Mode
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash -c 'echo performance | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; echo 95 | tee /sys/devices/system/cpu/intel_pstate/max_perf_pct'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl enable cpu-performance.service
+sudo systemctl start cpu-performance.service
+
+# 2. GPU Performance Autostart
+mkdir -p ~/.config/autostart
+tee ~/.config/autostart/nvidia-perf.desktop > /dev/null << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=NVIDIA Performance
+Exec=nvidia-settings -a "[gpu:0]/GpuPowerMizerMode=1"
+X-GNOME-Autostart-enabled=true
+EOF
+
+# 3. VM Gaming Tweaks
+sudo tee /etc/sysctl.d/99-gaming.conf > /dev/null << 'EOF'
+vm.swappiness = 1
+vm.vfs_cache_pressure = 50
+vm.dirty_ratio = 10
+vm.dirty_background_ratio = 5
+EOF
+
+sudo sysctl --system
+
+# 4. ZRAM Setup
+sudo tee /etc/systemd/zram-generator.conf > /dev/null << 'EOF'
+[zram0]
+zram-size = ram / 2
+compression-algorithm = zstd
+swap-priority = 100
+fs-type = swap
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl restart systemd-zram-setup@zram0.service 2>/dev/null
+
+# 5. Install GameMode
+sudo pacman -S --noconfirm gamemode lib32-gamemode
+sudo usermod -aG gamemode $USER
+
+# 6. Throttled Config -60mV (SAFE)
+sudo tee /etc/throttled.conf > /dev/null << 'EOF'
+[GENERAL]
+Enabled: True
+Sysfs_Power_Path: /sys/class/power_supply/AC*/online
+Autoreload: True
+
+[BATTERY]
+Update_Rate_s: 30
+PL1_Tdp_W: 35
+PL1_Duration_s: 28
+PL2_Tdp_W: 45
+PL2_Duration_S: 2.4
+Trip_Temp_C: 85
+cTDP: 0
+Disable_BDPROCHOT: False
+
+[AC]
+Update_Rate_s: 5
+PL1_Tdp_W: 45
+PL1_Duration_s: 28
+PL2_Tdp_W: 58
+PL2_Duration_S: 2.4
+Trip_Temp_C: 90
+HWP_Mode: False
+cTDP: 0
+Disable_BDPROCHOT: False
+
+[UNDERVOLT.BATTERY]
+CORE: -50
+GPU: -50
+CACHE: -50
+UNCORE: -50
+ANALOGIO: 0
+
+[UNDERVOLT.AC]
+CORE: -60
+GPU: -60
+CACHE: -60
+UNCORE: -60
+ANALOGIO: 0
+EOF
+
+sudo systemctl restart throttled
+
+echo ""
+echo "✅ ALL TWEAKS APPLIED!"
+echo ""
+echo "📊 Current Status:"
+echo "CPU Governor: $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)"
+echo "CPU Boost: $(cat /sys/devices/system/cpu/intel_pstate/max_perf_pct)%"
+echo "Swappiness: $(cat /proc/sys/vm/swappiness)"
+echo ""
+echo "🎮 Next steps:"
+echo "1. Reboot sistem"
+echo "2. Cek GPU: nvidia-settings -q GPUPowerMizerMode"
+echo "3. Test Sekiro dengan: gamemoderun %command%"
+echo ""
